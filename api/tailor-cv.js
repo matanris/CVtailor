@@ -1,36 +1,28 @@
 const https = require('https');
 
-function httpsPost(url, data, headers) {
+function httpsRequest(method, url, data, headers) {
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
-    const body = typeof data === 'string' ? data : JSON.stringify(data);
+    const body = data ? (typeof data === 'string' ? data : JSON.stringify(data)) : null;
     const options = {
       hostname: urlObj.hostname,
       path: urlObj.pathname + urlObj.search,
-      method: 'POST',
-      headers: { 'Content-Length': Buffer.byteLength(body), ...headers }
+      method,
+      headers: {
+        ...(body ? { 'Content-Length': Buffer.byteLength(body) } : {}),
+        ...headers
+      }
     };
     const req = https.request(options, (res) => {
       let raw = '';
       res.on('data', chunk => raw += chunk);
-      res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(raw) }));
+      res.on('end', () => {
+        try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
+        catch(e) { resolve({ status: res.statusCode, body: raw }); }
+      });
     });
     req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
-
-function httpsGet(url, headers) {
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const options = { hostname: urlObj.hostname, path: urlObj.pathname, method: 'GET', headers };
-    const req = https.request(options, (res) => {
-      let raw = '';
-      res.on('data', chunk => raw += chunk);
-      res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(raw) }));
-    });
-    req.on('error', reject);
+    if (body) req.write(body);
     req.end();
   });
 }
@@ -50,30 +42,50 @@ module.exports = async (req, res) => {
 
   // Verify PayPal payment
   try {
-    const authStr = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`).toString('base64');
-    const tokenRes = await httpsPost(
+    const clientId = process.env.PAYPAL_CLIENT_ID;
+    const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      return res.status(500).json({ error: 'Server config error: PayPal credentials not set in Vercel environment variables' });
+    }
+
+    const authStr = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+    // Get access token
+    const tokenRes = await httpsRequest(
+      'POST',
       'https://api-m.paypal.com/v1/oauth2/token',
       'grant_type=client_credentials',
       { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${authStr}` }
     );
+
     const token = tokenRes.body.access_token;
-    const orderRes = await httpsGet(
-      `https://api-m.paypal.com/v2/checkout/orders/${paypalOrderId}`,
-      { 'Authorization': `Bearer ${token}` }
-    );
-    const validStatuses = ['COMPLETED', 'APPROVED'];
-    if (!validStatuses.includes(orderRes.body.status)) {
-      console.error('Unexpected PayPal order status:', orderRes.body.status);
-      return res.status(402).json({ error: `Payment not completed (status: ${orderRes.body.status})` });
+    if (!token) {
+      const errMsg = tokenRes.body.error_description || tokenRes.body.error || JSON.stringify(tokenRes.body);
+      return res.status(402).json({ error: `PayPal auth failed: ${errMsg}. Check PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET in Vercel.` });
     }
+
+    // Get order
+    const orderRes = await httpsRequest(
+      'GET',
+      `https://api-m.paypal.com/v2/checkout/orders/${paypalOrderId}`,
+      null,
+      { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    );
+
+    const status = orderRes.body.status;
+    if (!['COMPLETED', 'APPROVED'].includes(status)) {
+      return res.status(402).json({ error: `Payment verification failed (status: ${status || 'unknown'})` });
+    }
+
   } catch (err) {
-    console.error('PayPal error:', err);
-    return res.status(402).json({ error: 'Payment verification failed' });
+    return res.status(402).json({ error: 'PayPal verification error: ' + err.message });
   }
 
   // Call Anthropic
   try {
-    const anthropicRes = await httpsPost(
+    const anthropicRes = await httpsRequest(
+      'POST',
       'https://api.anthropic.com/v1/messages',
       {
         model: 'claude-sonnet-4-20250514',
@@ -109,10 +121,10 @@ TAILORED CV:`
       }
     );
 
-    const tailoredCV = anthropicRes.body.content[0].text;
+    const tailoredCV = anthropicRes.body.content?.[0]?.text;
+    if (!tailoredCV) return res.status(500).json({ error: 'AI returned empty response' });
     return res.status(200).json({ tailoredCV });
   } catch (err) {
-    console.error('Anthropic error:', err);
-    return res.status(500).json({ error: 'Failed to tailor CV' });
+    return res.status(500).json({ error: 'Failed to tailor CV: ' + err.message });
   }
 };
