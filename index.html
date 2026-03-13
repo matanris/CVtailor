@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CV Tailor — Land the Interview</title>
+  <meta name="description" content="Tailor your CV to any job description in seconds using AI. Pay only when you use it." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://www.paypal.com/sdk/js?client-id=PAYPAL_CLIENT_ID_PLACEHOLDER&currency=USD&intent=capture"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0d0d; --bg2: #141414; --bg3: #1c1c1c;
+      --border: #2a2a2a; --border-light: #333;
+      --amber: #e8a838; --amber-dim: #c48920;
+      --cream: #f0e6d0; --text: #d4cfc8; --text-dim: #7a756e;
+      --green: #4caf7d; --red: #e05555;
+    }
+    html, body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+    ::selection { background: var(--amber); color: #000; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+    main { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+    header { margin-bottom: 56px; border-bottom: 1px solid var(--border); padding-bottom: 32px; }
+    .logo-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+    h1 { font-family: 'Playfair Display', serif; font-size: clamp(32px, 5vw, 48px); font-weight: 900; color: var(--cream); letter-spacing: -0.02em; line-height: 1; }
+    .price-badge { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--amber); border: 1px solid var(--amber-dim); padding: 2px 8px; border-radius: 4px; letter-spacing: 0.08em; }
+    .subtitle { color: var(--text-dim); font-size: 15px; line-height: 1.6; max-width: 520px; font-weight: 300; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+    label { display: block; font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.1em; color: var(--text-dim); margin-bottom: 10px; text-transform: uppercase; }
+    textarea { font-family: 'DM Mono', monospace; font-size: 12.5px; line-height: 1.7; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 16px; width: 100%; resize: vertical; transition: border-color 0.2s; outline: none; }
+    textarea:focus { border-color: var(--amber-dim); }
+    textarea::placeholder { color: var(--text-dim); }
+    .char-count { font-size: 11px; color: var(--text-dim); margin-top: 8px; font-family: 'DM Mono', monospace; }
+    .right-col { display: flex; flex-direction: column; }
+    .how-it-works { margin-top: 24px; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+    .how-title { font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 14px; text-transform: uppercase; }
+    .step { display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-start; }
+    .step-num { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--amber); min-width: 20px; }
+    .step-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+    .pay-area { margin-top: 20px; }
+    .btn-primary { background: var(--amber); color: #000; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 15px; padding: 14px 28px; cursor: pointer; transition: background 0.15s; width: 100%; letter-spacing: 0.01em; }
+    .btn-primary:hover { background: #f0b848; }
+    .btn-primary:disabled { background: var(--border-light); color: var(--text-dim); cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border-light); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 20px; cursor: pointer; transition: all 0.15s; width: 100%; margin-top: 8px; }
+    .btn-ghost:hover { border-color: var(--amber); color: var(--amber); }
+    .paypal-label { font-size: 12px; color: var(--text-dim); font-family: 'DM Mono', monospace; margin-bottom: 12px; text-align: center; }
+    #paypal-button-container { min-height: 50px; }
+    .spinner-wrap { text-align: center; padding: 80px 0; }
+    .spinner { width: 40px; height: 40px; border: 2px solid var(--border); border-top: 2px solid var(--amber); border-radius: 50%; margin: 0 auto 24px; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-text { color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 13px; }
+    .spinner-sub { color: var(--text-dim); font-size: 12px; margin-top: 8px; opacity: 0.6; }
+    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: gap; gap: 10px; }
+    .result-status { display: flex; align-items: center; gap: 10px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
+    .result-label { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--green); letter-spacing: 0.05em; }
+    .result-actions { display: flex; gap: 10px; }
+    .btn-copy { background: transparent; color: var(--text-dim); border: 1px solid var(--border-light); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 20px; cursor: pointer; transition: all 0.15s; }
+    .btn-copy:hover { border-color: var(--amber); color: var(--amber); }
+    .error-box { background: #1a0f0f; border: 1px solid var(--red); border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .error-msg { color: var(--red); margin-bottom: 16px; }
+    footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .footer-text { font-size: 12px; color: var(--text-dim); font-family: 'DM Mono', monospace; }
+    .hidden { display: none; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    .animate-in { animation: fadeUp 0.4s ease forwards; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo-row">
+      <h1>CV Tailor</h1>
+      <span class="price-badge">$2.50 / use</span>
+    </div>
+    <p class="subtitle">Paste your CV and the job description. AI rewrites your CV to match — highlighting relevant experience, mirroring keywords, and passing ATS filters.</p>
+  </header>
+
+  <!-- Main Form -->
+  <div id="form-section">
+    <div class="grid">
+      <div>
+        <label>Your Current CV</label>
+        <textarea id="cv-input" rows="22" placeholder="Paste your full CV here...&#10;&#10;Include:&#10;• Work experience&#10;• Education&#10;• Skills&#10;• Any sections you normally include"></textarea>
+        <p class="char-count" id="cv-count">min. ~100 chars</p>
+      </div>
+      <div class="right-col">
+        <label>Job Description</label>
+        <textarea id="jd-input" rows="14" placeholder="Paste the full job description here...&#10;&#10;The more detail, the better the tailoring."></textarea>
+        <p class="char-count" id="jd-count">min. ~50 chars</p>
+        <div class="how-it-works">
+          <p class="how-title">How it works</p>
+          <div class="step"><span class="step-num">01</span><span class="step-text">Paste your CV and the job description</span></div>
+          <div class="step"><span class="step-num">02</span><span class="step-text">Pay $2.50 securely via PayPal</span></div>
+          <div class="step"><span class="step-num">03</span><span class="step-text">AI tailors your CV in ~30 seconds</span></div>
+          <div class="step"><span class="step-num">04</span><span class="step-text">Copy the result and apply</span></div>
+        </div>
+        <div class="pay-area">
+          <button class="btn-primary" id="pay-btn" disabled onclick="showPaypal()">Paste CV + Job Description to continue</button>
+          <div id="paypal-section" class="hidden">
+            <p class="paypal-label">Complete payment via PayPal</p>
+            <div id="paypal-button-container"></div>
+            <button class="btn-ghost" onclick="hidePaypal()">← Go back</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Processing -->
+  <div id="processing-section" class="hidden">
+    <div class="spinner-wrap">
+      <div class="spinner"></div>
+      <p class="spinner-text">Tailoring your CV…</p>
+      <p class="spinner-sub">This takes about 20–30 seconds</p>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="error-section" class="hidden">
+    <div class="error-box">
+      <p class="error-msg" id="error-msg"></p>
+      <button class="btn-ghost" onclick="resetApp()" style="width:auto">← Try again</button>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div id="result-section" class="hidden animate-in">
+    <div class="result-header">
+      <div class="result-status">
+        <span class="dot"></span>
+        <span class="result-label">TAILORED CV READY</span>
+      </div>
+      <div class="result-actions">
+        <button class="btn-copy" id="copy-btn" onclick="copyResult()">Copy to clipboard</button>
+        <button class="btn-copy" onclick="resetApp()">← Tailor another</button>
+      </div>
+    </div>
+    <textarea id="result-output" rows="32" readonly style="border-color: var(--green); cursor: text;"></textarea>
+  </div>
+
+  <footer>
+    <span class="footer-text">CV Tailor · Powered by Claude AI</span>
+    <span class="footer-text">Payments secured by PayPal</span>
+  </footer>
+</main>
+
+<script>
+  const cvInput = document.getElementById('cv-input');
+  const jdInput = document.getElementById('jd-input');
+  const payBtn = document.getElementById('pay-btn');
+  const cvCount = document.getElementById('cv-count');
+  const jdCount = document.getElementById('jd-count');
+
+  function checkReady() {
+    const ready = cvInput.value.trim().length > 100 && jdInput.value.trim().length > 50;
+    payBtn.disabled = !ready;
+    payBtn.textContent = ready ? 'Tailor my CV — Pay $2.50 →' : 'Paste CV + Job Description to continue';
+    cvCount.textContent = cvInput.value.length > 0 ? `${cvInput.value.length} chars` : 'min. ~100 chars';
+    jdCount.textContent = jdInput.value.length > 0 ? `${jdInput.value.length} chars` : 'min. ~50 chars';
+  }
+
+  cvInput.addEventListener('input', checkReady);
+  jdInput.addEventListener('input', checkReady);
+
+  let paypalRendered = false;
+
+  function showPaypal() {
+    document.getElementById('pay-btn').classList.add('hidden');
+    document.getElementById('paypal-section').classList.remove('hidden');
+    if (!paypalRendered) {
+      paypal.Buttons({
+        createOrder: (data, actions) => actions.order.create({
+          purchase_units: [{ amount: { value: '2.50', currency_code: 'USD' }, description: 'CV Tailor — 1 tailored CV' }]
+        }),
+        onApprove: (data, actions) => actions.order.capture().then(() => handlePayment(data.orderID)),
+        onCancel: () => hidePaypal(),
+        onError: () => showError('PayPal encountered an error. Please try again.')
+      }).render('#paypal-button-container');
+      paypalRendered = true;
+    }
+  }
+
+  function hidePaypal() {
+    document.getElementById('pay-btn').classList.remove('hidden');
+    document.getElementById('paypal-section').classList.add('hidden');
+  }
+
+  async function handlePayment(orderID) {
+    document.getElementById('form-section').classList.add('hidden');
+    document.getElementById('processing-section').classList.remove('hidden');
+
+    try {
+      const res = await fetch('/api/tailor-cv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvText: cvInput.value,
+          jobDescription: jdInput.value,
+          paypalOrderId: orderID
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong');
+      document.getElementById('processing-section').classList.add('hidden');
+      document.getElementById('result-output').value = data.tailoredCV;
+      document.getElementById('result-section').classList.remove('hidden');
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  function showError(msg) {
+    document.getElementById('processing-section').classList.add('hidden');
+    document.getElementById('form-section').classList.add('hidden');
+    document.getElementById('error-msg').textContent = '⚠ ' + msg;
+    document.getElementById('error-section').classList.remove('hidden');
+  }
+
+  function copyResult() {
+    navigator.clipboard.writeText(document.getElementById('result-output').value);
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = 'Copy to clipboard', 2000);
+  }
+
+  function resetApp() {
+    document.getElementById('error-section').classList.add('hidden');
+    document.getElementById('result-section').classList.add('hidden');
+    document.getElementById('processing-section').classList.add('hidden');
+    document.getElementById('form-section').classList.remove('hidden');
+    hidePaypal();
+  }
+</script>
+</body>
+</html>
