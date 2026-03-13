@@ -61,8 +61,10 @@ module.exports = async (req, res) => {
       `https://api-m.paypal.com/v2/checkout/orders/${paypalOrderId}`,
       { 'Authorization': `Bearer ${token}` }
     );
-    if (orderRes.body.status !== 'COMPLETED') {
-      return res.status(402).json({ error: 'Payment not completed' });
+    const validStatuses = ['COMPLETED', 'APPROVED'];
+    if (!validStatuses.includes(orderRes.body.status)) {
+      console.error('Unexpected PayPal order status:', orderRes.body.status);
+      return res.status(402).json({ error: `Payment not completed (status: ${orderRes.body.status})` });
     }
   } catch (err) {
     console.error('PayPal error:', err);
