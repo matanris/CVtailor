@@ -7,7 +7,11 @@
   <meta name="description" content="Tailor your CV to any job description in seconds using AI. Pay only when you use it." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <script src="https://www.paypal.com/sdk/js?client-id=Ae-zqx8K0GkpI2b8xMS5tguUv8ZW0vQi_xqaMx8a9EX_-qRjGLyBQEVMOa1Lav8hUowGwir1kMpALlUd&currency=USD&intent=capture"></script>
+  <script src="https://www.paypal.com/sdk/js?client-id=PAYPAL_CLIENT_ID_PLACEHOLDER&currency=USD&intent=capture"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -54,13 +58,20 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinner-text { color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 13px; }
     .spinner-sub { color: var(--text-dim); font-size: 12px; margin-top: 8px; opacity: 0.6; }
-    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: gap; gap: 10px; }
+    .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
     .result-status { display: flex; align-items: center; gap: 10px; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; }
     .result-label { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--green); letter-spacing: 0.05em; }
     .result-actions { display: flex; gap: 10px; }
     .btn-copy { background: transparent; color: var(--text-dim); border: 1px solid var(--border-light); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 20px; cursor: pointer; transition: all 0.15s; }
     .btn-copy:hover { border-color: var(--amber); color: var(--amber); }
+    .btn-download { border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 20px; cursor: pointer; transition: all 0.15s; font-weight: 500; }
+    .btn-download.docx { background: #1e3a5f; color: #7eb8f7; }
+    .btn-download.docx:hover { background: #254a7a; }
+    .btn-download.pdf { background: #3d1a1a; color: #f78c8c; }
+    .btn-download.pdf:hover { background: #4f2020; }
+    .download-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .download-label { font-size: 11px; color: var(--text-dim); font-family: 'DM Mono', monospace; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
     .error-box { background: #1a0f0f; border: 1px solid var(--red); border-radius: 8px; padding: 24px; margin-bottom: 24px; }
     .error-msg { color: var(--red); margin-bottom: 16px; }
     footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -68,6 +79,20 @@
     .hidden { display: none; }
     @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
     .animate-in { animation: fadeUp 0.4s ease forwards; }
+    .upload-area { border: 1px dashed var(--border-light); border-radius: 8px; padding: 24px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg2); margin-bottom: 10px; position: relative; }
+    .upload-area:hover { border-color: var(--amber-dim); background: var(--bg3); }
+    .upload-area.dragover { border-color: var(--amber); background: var(--bg3); }
+    .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 24px; margin-bottom: 8px; }
+    .upload-text { font-size: 13px; color: var(--text-dim); }
+    .upload-subtext { font-size: 11px; color: var(--text-dim); opacity: 0.6; margin-top: 4px; font-family: 'DM Mono', monospace; }
+    .file-success { font-size: 12px; color: var(--green); margin-top: 8px; font-family: 'DM Mono', monospace; }
+    .file-error { font-size: 12px; color: var(--red); margin-top: 8px; }
+    .file-parsing { font-size: 12px; color: var(--amber); margin-top: 8px; font-family: 'DM Mono', monospace; }
+    .tab-row { display: flex; gap: 4px; margin-bottom: 12px; }
+    .tab { font-size: 11px; font-family: 'DM Mono', monospace; letter-spacing: 0.08em; color: var(--text-dim); padding: 5px 12px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; transition: all 0.15s; text-transform: uppercase; }
+    .tab.active { color: var(--amber); border-color: var(--amber-dim); background: var(--bg3); }
+    .tab:hover:not(.active) { color: var(--text); }
   </style>
 </head>
 <body>
@@ -77,30 +102,52 @@
       <h1>CV Tailor</h1>
       <span class="price-badge">$2.50 / use</span>
     </div>
-    <p class="subtitle">Paste your CV and the job description. AI rewrites your CV to match — highlighting relevant experience, mirroring keywords, and passing ATS filters.</p>
+    <p class="subtitle">Upload or paste your CV and the job description. AI rewrites your CV to match — highlighting relevant experience, mirroring keywords, and passing ATS filters.</p>
   </header>
 
-  <!-- Main Form -->
   <div id="form-section">
     <div class="grid">
+      <!-- Left: CV input -->
       <div>
-        <label>Your Current CV</label>
-        <textarea id="cv-input" rows="22" placeholder="Paste your full CV here...&#10;&#10;Include:&#10;• Work experience&#10;• Education&#10;• Skills&#10;• Any sections you normally include"></textarea>
+        <div class="tab-row">
+          <span class="tab active" id="tab-upload" onclick="switchTab('upload')">📎 Upload File</span>
+          <span class="tab" id="tab-paste" onclick="switchTab('paste')">✏️ Paste Text</span>
+        </div>
+
+        <div id="upload-mode">
+          <div class="upload-area" id="upload-area" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <input type="file" id="cv-file" accept=".pdf,.docx" onchange="handleFileSelect(event)" />
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">Drop your CV here or click to browse</div>
+            <div class="upload-subtext">PDF or DOCX · Photos are ignored, text only</div>
+          </div>
+          <div id="file-status"></div>
+          <textarea id="cv-preview" rows="12" readonly placeholder="Extracted CV text will appear here…" class="hidden" style="margin-top:10px; opacity:0.75;"></textarea>
+        </div>
+
+        <div id="paste-mode" class="hidden">
+          <textarea id="cv-input" rows="22" placeholder="Paste your full CV here...&#10;&#10;Include:&#10;• Work experience&#10;• Education&#10;• Skills"></textarea>
+        </div>
+
         <p class="char-count" id="cv-count">min. ~100 chars</p>
       </div>
+
+      <!-- Right: JD + payment -->
       <div class="right-col">
         <label>Job Description</label>
         <textarea id="jd-input" rows="14" placeholder="Paste the full job description here...&#10;&#10;The more detail, the better the tailoring."></textarea>
         <p class="char-count" id="jd-count">min. ~50 chars</p>
+
         <div class="how-it-works">
           <p class="how-title">How it works</p>
-          <div class="step"><span class="step-num">01</span><span class="step-text">Paste your CV and the job description</span></div>
-          <div class="step"><span class="step-num">02</span><span class="step-text">Pay $2.50 securely via PayPal</span></div>
-          <div class="step"><span class="step-num">03</span><span class="step-text">AI tailors your CV in ~30 seconds</span></div>
-          <div class="step"><span class="step-num">04</span><span class="step-text">Copy the result and apply</span></div>
+          <div class="step"><span class="step-num">01</span><span class="step-text">Upload your CV (PDF/DOCX) or paste text</span></div>
+          <div class="step"><span class="step-num">02</span><span class="step-text">Paste the job description</span></div>
+          <div class="step"><span class="step-num">03</span><span class="step-text">Pay $2.50 securely via PayPal</span></div>
+          <div class="step"><span class="step-num">04</span><span class="step-text">Copy your tailored CV and apply</span></div>
         </div>
+
         <div class="pay-area">
-          <button class="btn-primary" id="pay-btn" disabled onclick="showPaypal()">Paste CV + Job Description to continue</button>
+          <button class="btn-primary" id="pay-btn" disabled onclick="showPaypal()">Upload CV + Job Description to continue</button>
           <div id="paypal-section" class="hidden">
             <p class="paypal-label">Complete payment via PayPal</p>
             <div id="paypal-button-container"></div>
@@ -111,7 +158,6 @@
     </div>
   </div>
 
-  <!-- Processing -->
   <div id="processing-section" class="hidden">
     <div class="spinner-wrap">
       <div class="spinner"></div>
@@ -120,7 +166,6 @@
     </div>
   </div>
 
-  <!-- Error -->
   <div id="error-section" class="hidden">
     <div class="error-box">
       <p class="error-msg" id="error-msg"></p>
@@ -128,7 +173,6 @@
     </div>
   </div>
 
-  <!-- Result -->
   <div id="result-section" class="hidden animate-in">
     <div class="result-header">
       <div class="result-status">
@@ -141,6 +185,13 @@
       </div>
     </div>
     <textarea id="result-output" rows="32" readonly style="border-color: var(--green); cursor: text;"></textarea>
+    <div style="margin-top: 16px;">
+      <p class="download-label">Download as</p>
+      <div class="download-row">
+        <button class="btn-download docx" onclick="downloadDOCX()">📝 Download DOCX (Word)</button>
+        <button class="btn-download pdf" onclick="downloadPDF()">📄 Download PDF</button>
+      </div>
+    </div>
   </div>
 
   <footer>
@@ -150,21 +201,97 @@
 </main>
 
 <script>
-  const cvInput = document.getElementById('cv-input');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  let cvText = '';
+  let currentTab = 'upload';
+
   const jdInput = document.getElementById('jd-input');
   const payBtn = document.getElementById('pay-btn');
   const cvCount = document.getElementById('cv-count');
   const jdCount = document.getElementById('jd-count');
 
+  function switchTab(tab) {
+    currentTab = tab;
+    cvText = '';
+    document.getElementById('tab-upload').classList.toggle('active', tab === 'upload');
+    document.getElementById('tab-paste').classList.toggle('active', tab === 'paste');
+    document.getElementById('upload-mode').classList.toggle('hidden', tab !== 'upload');
+    document.getElementById('paste-mode').classList.toggle('hidden', tab !== 'paste');
+    updateCount(); checkReady();
+  }
+
+  function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-area').classList.add('dragover'); }
+  function handleDragLeave() { document.getElementById('upload-area').classList.remove('dragover'); }
+  function handleDrop(e) { e.preventDefault(); document.getElementById('upload-area').classList.remove('dragover'); const f = e.dataTransfer.files[0]; if (f) processFile(f); }
+  function handleFileSelect(e) { const f = e.target.files[0]; if (f) processFile(f); }
+
+  async function processFile(file) {
+    const status = document.getElementById('file-status');
+    const preview = document.getElementById('cv-preview');
+    status.className = 'file-parsing';
+    status.textContent = '⏳ Reading file…';
+    cvText = ''; updateCount(); checkReady();
+
+    try {
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        cvText = await extractPDF(file);
+      } else if (file.name.toLowerCase().endsWith('.docx')) {
+        cvText = await extractDOCX(file);
+      } else {
+        throw new Error('Please upload a PDF or DOCX file.');
+      }
+      status.className = 'file-success';
+      status.textContent = `✓ ${file.name} — ${cvText.length} characters extracted`;
+      preview.value = cvText;
+      preview.classList.remove('hidden');
+    } catch (err) {
+      status.className = 'file-error';
+      status.textContent = '⚠ ' + err.message;
+      cvText = '';
+      preview.classList.add('hidden');
+    }
+    updateCount(); checkReady();
+  }
+
+  async function extractPDF(file) {
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(i => i.str).join(' ') + '\n';
+    }
+    if (!text.trim()) throw new Error('No text found in this PDF. Try pasting instead.');
+    return text.trim();
+  }
+
+  async function extractDOCX(file) {
+    const buf = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: buf });
+    if (!result.value.trim()) throw new Error('No text found in this DOCX. Try pasting instead.');
+    return result.value.trim();
+  }
+
+  function getCVText() {
+    return currentTab === 'paste' ? document.getElementById('cv-input').value : cvText;
+  }
+
+  function updateCount() {
+    const t = getCVText();
+    cvCount.textContent = t.length > 0 ? `${t.length} chars` : 'min. ~100 chars';
+  }
+
   function checkReady() {
-    const ready = cvInput.value.trim().length > 100 && jdInput.value.trim().length > 50;
+    const ready = getCVText().trim().length > 100 && jdInput.value.trim().length > 50;
     payBtn.disabled = !ready;
-    payBtn.textContent = ready ? 'Tailor my CV — Pay $2.50 →' : 'Paste CV + Job Description to continue';
-    cvCount.textContent = cvInput.value.length > 0 ? `${cvInput.value.length} chars` : 'min. ~100 chars';
+    payBtn.textContent = ready ? 'Tailor my CV — Pay $2.50 →'
+      : (currentTab === 'upload' ? 'Upload CV + Job Description to continue' : 'Paste CV + Job Description to continue');
     jdCount.textContent = jdInput.value.length > 0 ? `${jdInput.value.length} chars` : 'min. ~50 chars';
   }
 
-  cvInput.addEventListener('input', checkReady);
+  document.getElementById('cv-input').addEventListener('input', () => { updateCount(); checkReady(); });
   jdInput.addEventListener('input', checkReady);
 
   let paypalRendered = false;
@@ -193,25 +320,18 @@
   async function handlePayment(orderID) {
     document.getElementById('form-section').classList.add('hidden');
     document.getElementById('processing-section').classList.remove('hidden');
-
     try {
       const res = await fetch('/api/tailor-cv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cvText: cvInput.value,
-          jobDescription: jdInput.value,
-          paypalOrderId: orderID
-        })
+        body: JSON.stringify({ cvText: getCVText(), jobDescription: jdInput.value, paypalOrderId: orderID })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
       document.getElementById('processing-section').classList.add('hidden');
       document.getElementById('result-output').value = data.tailoredCV;
       document.getElementById('result-section').classList.remove('hidden');
-    } catch (err) {
-      showError(err.message);
-    }
+    } catch (err) { showError(err.message); }
   }
 
   function showError(msg) {
@@ -228,12 +348,70 @@
     setTimeout(() => btn.textContent = 'Copy to clipboard', 2000);
   }
 
+  async function downloadDOCX() {
+    const text = document.getElementById('result-output').value;
+    const { Document, Packer, Paragraph, TextRun } = docx;
+    const lines = text.split('\n');
+    const paragraphs = lines.map(line => {
+      const isBold = line.trim().match(/^[A-Z][A-Z\s]{2,}$/) || line.startsWith('##') || line.startsWith('#');
+      const cleanLine = line.replace(/^#+\s*/, '').trim();
+      return new Paragraph({
+        children: [new TextRun({ text: cleanLine || ' ', bold: !!isBold, size: isBold ? 26 : 22, font: 'Calibri' })],
+        spacing: { after: cleanLine ? 120 : 60 }
+      });
+    });
+    const doc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'tailored-cv.docx'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadPDF() {
+    const text = document.getElementById('result-output').value;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const maxWidth = pageWidth - margin * 2;
+    const lineHeight = 6;
+    let y = margin;
+
+    doc.setFont('helvetica');
+    const lines = text.split('\n');
+
+    lines.forEach(line => {
+      const isBold = line.trim().match(/^[A-Z][A-Z\s]{2,}$/) || line.startsWith('#');
+      const cleanLine = line.replace(/^#+\s*/, '').trim();
+
+      if (!cleanLine) { y += lineHeight * 0.5; return; }
+
+      doc.setFontSize(isBold ? 12 : 10);
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+
+      const wrapped = doc.splitTextToSize(cleanLine, maxWidth);
+      wrapped.forEach(wline => {
+        if (y + lineHeight > doc.internal.pageSize.getHeight() - margin) {
+          doc.addPage(); y = margin;
+        }
+        doc.text(wline, margin, y);
+        y += lineHeight;
+      });
+      if (isBold) y += 2;
+    });
+
+    doc.save('tailored-cv.pdf');
+  }
+
   function resetApp() {
-    document.getElementById('error-section').classList.add('hidden');
-    document.getElementById('result-section').classList.add('hidden');
-    document.getElementById('processing-section').classList.add('hidden');
+    cvText = '';
+    ['error-section','result-section','processing-section'].forEach(id => document.getElementById(id).classList.add('hidden'));
     document.getElementById('form-section').classList.remove('hidden');
-    hidePaypal();
+    document.getElementById('file-status').textContent = '';
+    document.getElementById('cv-preview').classList.add('hidden');
+    document.getElementById('cv-file').value = '';
+    hidePaypal(); updateCount(); checkReady();
   }
 </script>
 </body>
